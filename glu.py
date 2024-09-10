@@ -1,12 +1,13 @@
-#!/user/bin/env python3
-# XXX Need to setup python3 env and pip3 requests library
+#!/usr/bin/env python
 import argparse
 import requests
+import json
 import sys
 import re
 import os
-from pprint import pprint
 
+DEFAULT_ENV_VAR = 'OPENWEATHER_APIKEY'
+DEFAULT_KEY_PATH = '~/.openweather_apikey'
 DEFAULT_PADDING = 20
 
 class GluError(Exception):
@@ -58,8 +59,6 @@ def get_coords(locations, api_key):
 
 
 def get_api_key(maybe_api_key):
-    DEFAULT_ENV_VAR = 'OPENWEATHER_APIKEY'
-    DEFAULT_KEY_PATH = '~/.openweather_apikey'
     if (maybe_api_key is not None):
         key_parts = maybe_api_key.split(':')
         if (len(key_parts) != 2):
@@ -89,14 +88,14 @@ def get_api_key(maybe_api_key):
 
 def print_coords(coords, full_response):
     if (full_response):
-        [pprint(v) for v in coords.values() ]
+        [print(json.dumps(v, indent=2)) for v in coords.values()]
     else:
         max_len = len(max(coords.keys(), key=len))
         max_len = max(max_len, len('LOCATION'))
         print(F"{'LOCATION':{max_len}} {'LATITUDE':>{DEFAULT_PADDING}} {'LONGITUDE':>{DEFAULT_PADDING}}")
         for k, v in coords.items():
             if ((len(v) < 1) or ('lat' not in v[0])):
-                # Placeholder values in case the zip code or municipality don't
+                # Placeholder values for when the zip code or municipality don't
                 # have coordinates.
                 v = [{'lat': 'UNKNOWN', 'lon': 'LOCATION'}]
             for coord in v:
@@ -107,7 +106,7 @@ GLU_DESCRIPTION = \
 Geolocation Utility (glu.py) -
   Retrieve latitude and longitude values from the API at
   https://openweathermap.org/api/geocoding-api. Requires an API Key for
-  authenticating the request. Default locations for the API Key are
+  authenticating the requests. Default locations for the API Key are
   the environment variable OPENWEATHER_APIKEY and, failing that, the first line
   of a UTF-8 text file ~/.openweather_apikey.
 '''

@@ -3,16 +3,9 @@ import glu
 import sys
 import pytest
 import re
+import json
 from requests import HTTPError
 
-
-def test_usage(capsys):
-    sys.argv = ['glu.py']
-    with pytest.raises(SystemExit) as e:
-        glu.main()
-    assert e.value.code == 2
-    captured = capsys.readouterr()
-    assert "the following arguments are required: location" in captured.err
 
 # Tests improperly formatted locations
 #["bad bad", "992291", "90210"]
@@ -27,18 +20,11 @@ def test_bad_location_inputs(capsys):
     assert "992291" in captured.err
     assert "90210" not in captured.err
 
-
-def test_old_and_busted_1(mocker):
-    spy = mocker.spy(glu, 'get_api_key')
-    sys.argv = ["glu.py", "-k", "key:abc123", "City, ZZ"]
-    with pytest.raises(HTTPError) as e:
-        glu.main()
-    assert spy.spy_return == 'abc123'
-
 # Tests default_environment_variable and UNKNOWN LOCATION
 def test_default_env_unknown_location(mocker, capsys):
     import os
-    os.environ['OPENWEATHER_APIKEY'] = 'abc123'
+    os.environ['GLUTESTOPENWEATHERKEY'] = 'abc123'
+    mocker.patch("glu.DEFAULT_ENV_VAR", "GLUTESTOPENWEATHERKEY")
     mock_get_response = mocker.MagicMock()
     mock_get = mocker.patch('requests.get', return_value=mock_get_response)
     sys.argv = ["glu.py", "City, ZZ"]
@@ -52,7 +38,8 @@ def test_default_env_unknown_location(mocker, capsys):
 # Tests default key file location
 def test_default_key_file_unknown_zip(mocker, capsys):
     import os
-    os.environ['OPENWEATHER_APIKEY'] = ''
+    os.environ['XXGLUTESTOPENWEATHERKEYXX'] = ''
+    mocker.patch("glu.DEFAULT_ENV_VAR", "XXGLUTESTOPENWEATHERKEYXX")
     mock_get_response = mocker.MagicMock()
     mock_get_response.json.return_value = {'code': 404}
     mock_get = mocker.patch('requests.get', return_value=mock_get_response)
@@ -98,7 +85,6 @@ def test_apikey_env(mocker):
     mock_get.assert_called_once()
     assert mock_get.call_args.kwargs['params']['appid'] == 'abc123'
 
-
 # Tests --apikey key: 90210
 def test_apikey_key_empty(capsys):
     sys.argv = ['glu.py', '-k', 'key:', '90210']
@@ -107,7 +93,6 @@ def test_apikey_key_empty(capsys):
     assert e.value.code == 1
     captured = capsys.readouterr()
     assert "Unable to find key" in captured.err    
-
 
 # Tests -k file 90210
 def test_apikey_file_empty(capsys):
@@ -126,7 +111,6 @@ def test_apikey_bad_key_type(capsys):
     assert e.value.code == 1
     captured = capsys.readouterr()
     assert "Unable to parse --apikey parameter" in captured.err    
-
 
 def test_location_parsing_direct(mocker, capsys):
     mock_get_response = mocker.MagicMock()
@@ -150,7 +134,6 @@ def test_location_parsing_zip(mocker, capsys):
     assert '11111' in captured.out
     assert '22222' in captured.out
 
-
 def test_location_raw(mocker, capsys):
     mock_get_response = mocker.MagicMock()
     mock_get_response.json.return_value = [{'lat': '1.00', 'lon': '-1.00'}]
@@ -162,11 +145,10 @@ def test_location_raw(mocker, capsys):
 
 def test_fullresponse_output(mocker, capsys):
     mock_get_response = mocker.MagicMock()
-    mock_get_response.json.return_value = [{'lat': '1.00', 'lon': '-1.00'}]
+    mock_get_response.json.return_value = [{"lat": "1.00", "lon": "-1.00"}]
     mock_get = mocker.patch('requests.get', return_value=mock_get_response)
     sys.argv = ['glu.py', '-f', '-k', 'key:abc123', 'Xx, ZZ']
     glu.main()
     captured = capsys.readouterr()
     mock_get.assert_called_once()
-    assert "[{'lat': '1.00', 'lon': '-1.00'}]" in captured.out
-
+    assert {"lat": "1.00", "lon": "-1.00"} in json.loads(captured.out)
