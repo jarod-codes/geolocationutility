@@ -13,10 +13,9 @@ DEFAULT_KEY_PATH = '~/.openweather_apikey'
 
 @pytest.fixture(scope="function")
 def stop_on_prereqs_missing(request):
-    def finalize():
-        if request.session.testsfailed > 0:
-            pytest.exit("Stopping integration tests due to missing api key")
-    request.addfinalizer(finalize)
+    yield
+    if request.session.testsfailed > 0:
+        pytest.exit("Stopping integration tests due to missing api key")
 
 def test_prereqs(stop_on_prereqs_missing):
     env_key_present = DEFAULT_ENV_VAR in os.environ and \
@@ -25,7 +24,6 @@ def test_prereqs(stop_on_prereqs_missing):
     assert env_key_present or key_file_present, "To run the integration " \
         f"tests the default api key environment variable {DEFAULT_ENV_VAR} " \
         f"or the default key file {DEFAULT_KEY_PATH} is needed"
-
 
 def test_us_locations():
     args = ['venv/scripts/python', 'glu.py', '90210', 'Chicago, IL']
