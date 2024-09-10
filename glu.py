@@ -33,26 +33,32 @@ def get_coords(locations, api_key):
     DEFAULT_TIMEOUT = 4.2
     location_coords = {}
     for location in locations:
-        if location.isdigit():
-            params = {'zip': location, 'appid': api_key}
-            r = requests.get('https://api.openweathermap.org/geo/1.0/zip', params=params, timeout=DEFAULT_TIMEOUT)
-            # If a zip code is invalid, openweathermap returns a 404.
-            # To make things consistent with the {city},{state} lookup, 
-            # don't raise a status code exception for a 404.
-            if r.status_code != 404:
+        try:
+            if location.isdigit():
+                params = {'zip': location, 'appid': api_key}
+                r = requests.get('https://api.openweathermap.org/geo/1.0/zip', params=params, timeout=DEFAULT_TIMEOUT)
+                # If a zip code is invalid, openweathermap returns a 404.
+                # To make things consistent with the {city},{state} lookup,
+                # don't raise a status code exception for a 404.
+                if r.status_code != 404:
+                    r.raise_for_status()
+                data = [r.json()]
+            else:
+                # The limit for free accounts appears to be 5, defaults to 1
+                # otherwise.
+                params = {"q": location, "limit": "5", "appid": api_key}
+                # http://api.openweathermap.org/geo/1.0/direct?q={city name},{state code},{country code}&limit={limit}&appid={API key}
+                r = requests.get('https://api.openweathermap.org/geo/1.0/direct', params=params, timeout=DEFAULT_TIMEOUT)
+                # Unless a 200 status code is returned, raise an error
                 r.raise_for_status()
-            data = [r.json()]
-        else:
-            # The limit for free accounts appears to be 5, defaults to 1
-            # otherwise.
-            params = {"q": location, "limit": "5", "appid": api_key}
-            # http://api.openweathermap.org/geo/1.0/direct?q={city name},{state code},{country code}&limit={limit}&appid={API key}
-            r = requests.get('https://api.openweathermap.org/geo/1.0/direct', params=params, timeout=DEFAULT_TIMEOUT)
-            # Unless a 200 status code is returned, raise an error
-            r.raise_for_status()
-            # If the location doesn't exist, openweathermap returns an empty
-            # json array with a 200 status code.
-            data = r.json()
+                # If the location doesn't exist, openweathermap returns an empty
+                # json array with a 200 status code.
+                data = r.json()
+        except requests.HTTPError as e:
+            if e.response.status_code == 401:
+                raise GluError(f'It appears openweathermap.org does not like the api key {api_key}')
+            else:
+                raise e
             
         location_coords[f"{location}"] = data
     return location_coords
@@ -150,7 +156,13 @@ def main():
             print(f"These location names are improperly formatted:", file=sys.stderr)
             print(*invalid_locations, sep='\n', file=sys.stderr)
             exit(1)
-    coords = get_coords(valid_locations, api_key)
+
+    try:
+        coords = get_coords(valid_locations, api_key)
+    except GluError as e:
+        print(f"{e}\n", file=sys.stderr)
+        exit(1)
+
     print_coords(coords, args.fullresponse)
 
 

@@ -73,3 +73,10 @@ def test_us_location_not_found():
     assert glu.returncode == 0
     output = json.loads(glu.stdout)
     assert output == []
+
+def test_bad_api_key():
+    args = ['venv/scripts/python', 'glu.py', '-k', 'key:badkeyvalue', '-f', 'New York, NY']
+    glu = subprocess.run(args, capture_output=True)
+    assert glu.returncode == 1
+    output = glu.stderr.decode('utf-8')
+    assert 'does not like the api key badkeyvalue' in output
