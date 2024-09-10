@@ -1,16 +1,17 @@
 
 import glu
-import sys
 import pytest
 import re
 import json
-from requests import HTTPError
+from unittest.mock import patch
 
+ARGV0 = "glu_test.py"
+TESTAPIKEY = "abc123xyzzy"
+COORDS1 = {"lat": "1.00", "lon": "-1.00"}
 
 # Tests improperly formatted locations
-#["bad bad", "992291", "90210"]
+@patch("sys.argv", [ARGV0, "-k", f"key:{TESTAPIKEY}", "bad bad", "992291", "90210"])
 def test_bad_location_inputs(capsys):
-    sys.argv = ["glu.py", "-k", "key:abc123", "bad bad", "992291", "90210"]
     with pytest.raises(SystemExit) as e:
         glu.main()
     assert e.value.code == 1
@@ -21,73 +22,70 @@ def test_bad_location_inputs(capsys):
     assert "90210" not in captured.err
 
 # Tests default_environment_variable and UNKNOWN LOCATION
+@patch.dict("os.environ", {"GLUTESTOPENWEATHERMAPAPIKEY": TESTAPIKEY})
+@patch("glu.DEFAULT_ENV_VAR", "GLUTESTOPENWEATHERMAPAPIKEY")
+@patch("sys.argv", [ARGV0, "City, ZZ"])
 def test_default_env_unknown_location(mocker, capsys):
-    import os
-    os.environ['GLUTESTOPENWEATHERKEY'] = 'abc123'
-    mocker.patch("glu.DEFAULT_ENV_VAR", "GLUTESTOPENWEATHERKEY")
     mock_get_response = mocker.MagicMock()
     mock_get = mocker.patch('requests.get', return_value=mock_get_response)
-    sys.argv = ["glu.py", "City, ZZ"]
     glu.main()
     captured = capsys.readouterr()
     mock_get.assert_called_once()
-    assert mock_get.call_args.kwargs['params']['appid'] == 'abc123'
+    assert mock_get.call_args.kwargs['params']['appid'] == TESTAPIKEY
     table_row = r'\s*City, ZZ, US\s*UNKNOWN\s*LOCATION'
     assert re.search(table_row, captured.out)
 
 # Tests default key file location
+@patch.dict("os.environ", {"XXGLUTESTOPENWEATHERMAPAPIKEYXX": ""})
+@patch("glu.DEFAULT_ENV_VAR", "XXGLUTESTOPENWEATHEMAPRAPIKEYXX")
 def test_default_key_file_unknown_zip(mocker, capsys):
-    import os
-    os.environ['XXGLUTESTOPENWEATHERKEYXX'] = ''
-    mocker.patch("glu.DEFAULT_ENV_VAR", "XXGLUTESTOPENWEATHERKEYXX")
     mock_get_response = mocker.MagicMock()
     mock_get_response.json.return_value = {'code': 404}
     mock_get = mocker.patch('requests.get', return_value=mock_get_response)
-    mock_file = mocker.mock_open(read_data='abc123\n')
+    mock_file = mocker.mock_open(read_data=f'{TESTAPIKEY}\n')
     mocker.patch("builtins.open", mock_file)
-    sys.argv = ["glu.py", "10203"]
+    mocker.patch("sys.argv", [ARGV0, "10203"])
     glu.main()
     captured = capsys.readouterr()
     mock_get.assert_called_once()
-    assert mock_get.call_args.kwargs['params']['appid'] == 'abc123'
+    assert mock_get.call_args.kwargs['params']['appid'] == TESTAPIKEY
     table_row = r'\s*10203\s*UNKNOWN\s*LOCATION'
     assert re.search(table_row, captured.out)
 
 # Tests --apikey key:123abc
+@patch("sys.argv", [ARGV0, "-k", f"key:{TESTAPIKEY}", "City, ZZ"])
 def test_apikey_key(mocker):
     mock_get_response = mocker.MagicMock()
     mock_get = mocker.patch('requests.get', return_value=mock_get_response)
-    sys.argv = ["glu.py", "-k", "key:abc123", "City, ZZ"]
     glu.main()
     mock_get.assert_called_once()
-    assert mock_get.call_args.kwargs['params']['appid'] == 'abc123'
+    assert mock_get.call_args.kwargs['params']['appid'] == TESTAPIKEY
 
 # Tests --apikey file:./testkeyfile
 def test_apikey_file(mocker):
     mock_get_response = mocker.MagicMock()
     mock_get = mocker.patch('requests.get', return_value=mock_get_response)
-    mock_file = mocker.mock_open(read_data='abc123\n')
+    mock_file = mocker.mock_open(read_data=f'{TESTAPIKEY}\n')
     mocker.patch("builtins.open", mock_file)
-    sys.argv = ["glu.py", "--apikey", "file:testkeyfile", "City, ZZ"]
+    mocker.patch("sys.argv", [ARGV0, "--apikey", "file:testkeyfile", "City, ZZ"])
     glu.main()
     mock_file.assert_called_once_with('testkeyfile')
     mock_get.assert_called_once()
-    assert mock_get.call_args.kwargs['params']['appid'] == 'abc123'
+    assert mock_get.call_args.kwargs['params']['appid'] == TESTAPIKEY
 
 # Tests --apikey env:TEST_API_KEY_VAL
+@patch.dict('os.environ', {'GLUPYTESTKEYVALUE': TESTAPIKEY})
+@patch("sys.argv", [ARGV0, "--apikey", "env:GLUPYTESTKEYVALUE", "City, ZZ"])
 def test_apikey_env(mocker):
-    import os
-    os.environ['GLUPYTESTKEYVALUE'] = 'abc123'
     mock_get_response = mocker.MagicMock()
     mock_get = mocker.patch('requests.get', return_value=mock_get_response)
-    sys.argv = ["glu.py", "--apikey", "env:GLUPYTESTKEYVALUE", "City, ZZ"]
     glu.main()
     mock_get.assert_called_once()
-    assert mock_get.call_args.kwargs['params']['appid'] == 'abc123'
+    assert mock_get.call_args.kwargs['params']['appid'] == TESTAPIKEY
 
 # Tests --apikey key: 90210
+@patch("sys.argv", [ARGV0, "-k", "key:", "90210"])
 def test_apikey_key_empty(capsys):
-    sys.argv = ['glu.py', '-k', 'key:', '90210']
     with pytest.raises(SystemExit) as e:
         glu.main()
     assert e.value.code == 1
@@ -95,8 +93,8 @@ def test_apikey_key_empty(capsys):
     assert "Unable to find key" in captured.err    
 
 # Tests -k file 90210
+@patch("sys.argv", [ARGV0, "-k", "file", "90210"])
 def test_apikey_file_empty(capsys):
-    sys.argv = ['glu.py', '-k', 'file', '90210']
     with pytest.raises(SystemExit) as e:
         glu.main()
     assert e.value.code == 1
@@ -104,51 +102,51 @@ def test_apikey_file_empty(capsys):
     assert "Unable to parse --apikey parameter file" in captured.err    
 
 # Tests --apikey nowhere:nothing 90210
+@patch("sys.argv", [ARGV0, "-k", "nowhere:nothing", "90210"])
 def test_apikey_bad_key_type(capsys):
-    sys.argv = ['glu.py', '-k', 'nowhere:nothing', '90210']
     with pytest.raises(SystemExit) as e:
         glu.main()
     assert e.value.code == 1
     captured = capsys.readouterr()
     assert "Unable to parse --apikey parameter" in captured.err    
 
+@patch("sys.argv", [ARGV0, '-k', f'key:{TESTAPIKEY}', 'City One, ZZ', 'CityTwo,YY'])
 def test_location_parsing_direct(mocker, capsys):
     mock_get_response = mocker.MagicMock()
-    mock_get_response.json.return_value = [{'lat': '1.00', 'lon': '-1.00'}]
+    mock_get_response.json.return_value = [COORDS1]
     mock_get = mocker.patch('requests.get', return_value=mock_get_response)
-    sys.argv = ['glu.py', '-k', 'key:abc123', 'City One, ZZ', 'CityTwo,YY']
     glu.main()
     captured = capsys.readouterr()
     assert mock_get.call_count == 2
     assert 'City One, ZZ, US' in captured.out
     assert 'CityTwo,YY, US' in captured.out
 
+@patch("sys.argv", [ARGV0, '-k', f'key:{TESTAPIKEY}', '11111', '22222'])
 def test_location_parsing_zip(mocker, capsys):
     mock_get_response = mocker.MagicMock()
-    mock_get_response.json.return_value = {'lat': '1.00', 'lon': '-1.00'}
+    mock_get_response.json.return_value = COORDS1
     mock_get = mocker.patch('requests.get', return_value=mock_get_response)
-    sys.argv = ['glu.py', '-k', 'key:abc123', '11111', '22222']
     glu.main()
     captured = capsys.readouterr()
     assert mock_get.call_count == 2
     assert '11111' in captured.out
     assert '22222' in captured.out
 
-def test_location_raw(mocker, capsys):
+@patch("sys.argv", [ARGV0, '-r', '-k', f'key:{TESTAPIKEY}', '   X Y Z  Z Y, X X, ZZ '])
+def test_location_raw(mocker):
     mock_get_response = mocker.MagicMock()
-    mock_get_response.json.return_value = [{'lat': '1.00', 'lon': '-1.00'}]
+    mock_get_response.json.return_value = [COORDS1]
     mock_get = mocker.patch('requests.get', return_value=mock_get_response)
-    sys.argv = ['glu.py', '-r', '-k', 'key:abc123', '   X Y Z  Z Y, X X, ZZ ']
     glu.main()
     mock_get.assert_called_once()
     assert mock_get.call_args.kwargs['params']['q'] == '   X Y Z  Z Y, X X, ZZ '
 
+@patch("sys.argv", [ARGV0, '-f', '-k', f'key:{TESTAPIKEY}', 'Xx, ZZ'])
 def test_fullresponse_output(mocker, capsys):
     mock_get_response = mocker.MagicMock()
-    mock_get_response.json.return_value = [{"lat": "1.00", "lon": "-1.00"}]
+    mock_get_response.json.return_value = [COORDS1]
     mock_get = mocker.patch('requests.get', return_value=mock_get_response)
-    sys.argv = ['glu.py', '-f', '-k', 'key:abc123', 'Xx, ZZ']
     glu.main()
     captured = capsys.readouterr()
     mock_get.assert_called_once()
-    assert {"lat": "1.00", "lon": "-1.00"} in json.loads(captured.out)
+    assert COORDS1 in json.loads(captured.out)
