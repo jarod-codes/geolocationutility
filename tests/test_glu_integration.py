@@ -11,6 +11,13 @@ table_unknown = r'UNKNOWN\s+LOCATION'
 DEFAULT_ENV_VAR = 'OPENWEATHER_APIKEY'
 DEFAULT_KEY_PATH = '~/.openweather_apikey'
 
+if os.path.exists('venv/bin/python'):
+    PYTHONENV = 'venv/bin/python'
+elif os.path.exists('venv/Scripts/python.exe'):
+    PYTHONENV = 'venv/Scripts/python'
+else:
+    PYTHONENV = 'python'
+
 @pytest.fixture(scope="function")
 def stop_on_prereqs_missing(request):
     yield
@@ -26,7 +33,7 @@ def test_prereqs(stop_on_prereqs_missing):
         f"or the default key file {DEFAULT_KEY_PATH} is needed"
 
 def test_us_locations():
-    args = ['venv/scripts/python', 'glu.py', '90210', 'Chicago, IL']
+    args = [PYTHONENV, 'glu.py', '90210', 'Chicago, IL']
     glu = subprocess.run(args, capture_output=True)
     assert glu.returncode == 0
     output = glu.stdout.decode('utf-8')
@@ -37,7 +44,7 @@ def test_us_locations():
     assert re.search(chicago, output)
     
 def test_unknown_locations():
-    args = ['venv/scripts/python', 'glu.py', '90210', 'New XYZZY, ZZ']
+    args = [PYTHONENV, 'glu.py', '90210', 'New XYZZY, ZZ']
     glu = subprocess.run(args, capture_output=True)
     assert glu.returncode == 0
     output = glu.stdout.decode('utf-8')
@@ -45,7 +52,7 @@ def test_unknown_locations():
     assert re.search(xyzzy, output)
 
 def test_global_location():
-    args = ['venv/scripts/python', 'glu.py', '-r', 'Montreal, QC, CA']
+    args = [PYTHONENV, 'glu.py', '-r', 'Montreal, QC, CA']
     glu = subprocess.run(args, capture_output=True)
     assert glu.returncode == 0
     output = glu.stdout.decode('utf-8')
@@ -53,7 +60,7 @@ def test_global_location():
     assert re.search(montreal, output)
 
 def test_same_us_location_names():
-    args = ['venv/scripts/python', 'glu.py', 'Pumpkin Center, NC']
+    args = [PYTHONENV, 'glu.py', 'Pumpkin Center, NC']
     glu = subprocess.run(args, capture_output=True)
     assert glu.returncode == 0
     output = glu.stdout.decode('utf-8')
@@ -61,21 +68,21 @@ def test_same_us_location_names():
     assert len(re.findall(pumpkin_center, output)) == 3
 
 def test_zip_not_found():
-    args = ['venv/scripts/python', 'glu.py', '-f', '00000']
+    args = [PYTHONENV, 'glu.py', '-f', '00000']
     glu = subprocess.run(args, capture_output=True)
     assert glu.returncode == 0
     output = json.loads(glu.stdout)[0]
     assert output == {'cod': '404', 'message': 'not found'}
 
 def test_us_location_not_found():
-    args = ['venv/scripts/python', 'glu.py', '-f', 'New Xyzzyton, ZZ']
+    args = [PYTHONENV, 'glu.py', '-f', 'New Xyzzyton, ZZ']
     glu = subprocess.run(args, capture_output=True)
     assert glu.returncode == 0
     output = json.loads(glu.stdout)
     assert output == []
 
 def test_bad_api_key():
-    args = ['venv/scripts/python', 'glu.py', '-k', 'key:badkeyvalue', '-f', 'New York, NY']
+    args = [PYTHONENV, 'glu.py', '-k', 'key:badkeyvalue', '-f', 'New York, NY']
     glu = subprocess.run(args, capture_output=True)
     assert glu.returncode == 1
     output = glu.stderr.decode('utf-8')
