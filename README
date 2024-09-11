@@ -14,8 +14,9 @@ Also see `glu.py --help` for various options.
 git clone https://github.com/jarod-codes/geolocationutility.git
 cd geolocationutility
 pip install requests
-set OPENWEATHER_APIKEY=yourapikey
-glu.py "Miami, FL" 10118 02108 98101
+set OPENWEATHER_APIKEY=yourapikey       # Windows cmd.exe
+export OPENWEATHER_APIKEY=yourapikey    # Unix-y shell
+python glu.py "Miami, FL" 10118 02108 98101
 ```
 ## Description
 The motivations for writing this utility:
@@ -39,7 +40,8 @@ pytest tests/test_glu.py
 ```
 Run only the integration tests
 ```
-cat yourapikey > ~/.openweather_apikey
+touch ~/.openweather_apikey
+echo yourapikey > ~/.openweather_apikey
 pytest tests/test_glu_integration.py
 ```
 Run all the tests with `pytest`

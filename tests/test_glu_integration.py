@@ -9,7 +9,7 @@ table_header = r'\s*LOCATION\s*LATITUDE\s*LONGITUDE'
 table_coords = r'-?\d+\.\d+\s+-?\d+\.\d+'
 table_unknown = r'UNKNOWN\s+LOCATION'
 DEFAULT_ENV_VAR = 'OPENWEATHER_APIKEY'
-DEFAULT_KEY_PATH = '~/.openweather_apikey'
+DEFAULT_KEY_PATH = os.path.expanduser('~/.openweather_apikey')
 
 if os.path.exists('venv/bin/python'):
     PYTHONENV = 'venv/bin/python'

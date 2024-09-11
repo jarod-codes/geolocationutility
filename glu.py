@@ -7,7 +7,7 @@ import re
 import os
 
 DEFAULT_ENV_VAR = 'OPENWEATHER_APIKEY'
-DEFAULT_KEY_PATH = '~/.openweather_apikey'
+DEFAULT_KEY_PATH = os.path.expanduser('~/.openweather_apikey')
 DEFAULT_PADDING = 20
 
 class GluError(Exception):
