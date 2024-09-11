@@ -18,6 +18,14 @@ set OPENWEATHER_APIKEY=yourapikey       # Windows cmd.exe
 export OPENWEATHER_APIKEY=yourapikey    # Unix-y shell
 python glu.py "Miami, FL" 10118 02108 98101
 ```
+## Slow Start
+This utility was written and tested on Windows 10 using cmd.exe and on 
+Mac OS X using the Terminal default zsh. Both had the latest version of 
+Python3 downloaded from the [Python downloads page](https://python.org/downloads).
+
+If you are using something like Chocolatey or Homebrew to install Python, there
+will probably be some slightly different configuring needed to get things going.
+
 ## Description
 The motivations for writing this utility:
 * Reinforce and expand my Python knowledge
