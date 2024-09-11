@@ -33,6 +33,13 @@ The motivations for writing this utility:
 * Demonstrate integration testing
 
 ## Developing
+It's recommended to setup a Python virtual environment for testing. In
+particular, the `test_glu_integrations.py` tests look in these locations
+for python:
+1. `venv/bin/python`
+1. `venv\Scripts\python.exe`
+1. `python` if one of the above two are not present. At this point, if
+`python` is not in your `$PATH`, then the integration tests will fail.
 ```
 git clone https://github.com/jarod-codes/geolocationutility.git
 cd geolocationutility
