@@ -1,8 +1,8 @@
 # GeoLocation Utility - glu.py
 This utility takes 5-digit US zip codes or "City, State" values as input, looks
-them up on OpenWeatherMap's geocoding API, and displays the latitude and
-longitude coordinates of that location (or locations if there is more than one
-municipality with that name).
+them up on [OpenWeatherMap's geocoding API](https://openweathermap.org/api/geocoding-api),
+and displays the latitude and longitude coordinates of that location (or
+locations if there is more than one municipality with that name).
 
 Technical requirements:
 * A recent version of Python 3
@@ -15,7 +15,7 @@ git clone https://github.com/jarod-codes/geolocationutility.git
 cd geolocationutility
 pip install requests
 set OPENWEATHER_APIKEY=yourapikey
-glu.py "Miami, FL" 02108 98101
+glu.py "Miami, FL" 10118 02108 98101
 ```
 ## Description
 The motivations for writing this utility:
